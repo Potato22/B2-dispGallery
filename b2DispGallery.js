@@ -14,7 +14,7 @@
             const data = await response.json();
             return data;
         } catch (error) {
-            console.error('Error while fetching files:', error.message);
+            console.error('*blows up json with mind*', error.message);
             return null;
         }
     }
@@ -25,8 +25,8 @@
                 console.log("delivered")
                 console.log("filtering")
                 //data processing
-                const displayData = [];
-                const losslessData = [];
+                const displayImages = [];
+                const losslessImages = [];
 
                 data.forEach(item => {
                     if (item.contentType.includes('image/')) {
@@ -36,15 +36,16 @@
                             nameVariable = 'nameLossy';
                             urlDisplay = 'urlLossy';
                             dateUploaded = 'date';
-                            displayData.push({
-                                [nameVariable]: item.name.replace(/(?:display|lossless)\//, '').replace('nsfw/', '').split('.')[0],
+                            displayImages.push({
+                                [nameVariable]: item.name.replace(/(?:display|lossless)\//, '').replace('nsfw/', '').replace('sketch/', '').split('.')[0],
                                 [urlDisplay]: item.url,
                                 [dateUploaded]: item.uploadTime,
+                                sketch: item.url.includes('sketch') ? true : null,
                                 nsfw: item.url.includes('nsfw') ? true : null
                             });
                         } else if (item.name.includes('lossless/')) {
                             nameVariable = 'nameLossless';
-                            losslessData.push({
+                            losslessImages.push({
                                 [nameVariable]: item.name.replace(/(?:display|lossless)\//, '').replace('nsfw/', '').split('.')[0],
                                 urlLossless: item.url,
                                 date: item.uploadTime
@@ -53,25 +54,38 @@
                     }
                 });
 
-                displayData.sort((a, b) => new Date(b.date) - new Date(a.date));
-                const displayCount = displayData.slice(0, 10);
+                displayImages.sort((a, b) => new Date(b.date) - new Date(a.date));
+                const displayCount = displayImages.slice(0, 10);
 
                 console.log("Display Data:", displayCount);
-                console.log("Lossless Data:", losslessData);
+                console.log("Lossless Data:", losslessImages);
 
                 const latestWorkGrid = document.getElementById('latestWorks');
                 const imgDataFragment = document.createDocumentFragment();
 
                 displayCount.forEach(item => {
                     const img = new Image();
+                    const losslessLinko = document.createElement('p');
                     img.setAttribute('style', 'position: relative; max-width:100%; overflow: hidden;');
                     img.src = item.urlLossy;
                     img.alt = item.nameLossy; // remove file ext
                     img.dataset.flag = item.nsfw ? 'true' : 'false';
-                    img.dataset.lossless = losslessData.find(x => x.nameLossless === item.nameLossy) ?
-                        losslessData.find(x => x.nameLossless === item.nameLossy).urlLossless :
+                    img.dataset.sketch = item.sketch ? 'true' : 'false';
+                    
+                    const matchingLossless = losslessImages.find(x => x.nameLossless === item.nameLossy);
+                    if (matchingLossless) {
+                        losslessLinko.textContent = 'lossless: ' + matchingLossless.urlLossless;
+                        img.dataset.lossless = matchingLossless.urlLossless;
+                    } else {
+                        losslessLinko.textContent = 'No lossless version available';
+                        img.dataset.lossless = false;
+                    }
+                    
+                    img.dataset.lossless = losslessImages.find(x => x.nameLossless === item.nameLossy) ?
+                        losslessImages.find(x => x.nameLossless === item.nameLossy).urlLossless :
                         false;
                     imgDataFragment.append(img);
+                    imgDataFragment.append(losslessLinko); // appended the paragraph element
                 });
 
                 latestWorkGrid.replaceChildren(imgDataFragment);
