@@ -25,54 +25,55 @@
                 console.log("delivered")
                 console.log("filtering")
                 //data processing
-                const pulledData = data.filter(item => item.contentType.includes('image/')).map(item => {
-                    let nameVariable, urlVariable, dateUploaded, nsfw;
+                const displayData = [];
+                const losslessData = [];
 
-                    if (item.name.includes('display/')) {
-                        nameVariable = 'nameLossy';
-                        urlVariable = 'urlLossy';
-                        dateUploaded = 'date';
-                    } else if (item.name.includes('lossless/')) {
-                        nameVariable = 'nameLossless';
-                        urlVariable = 'urlLossless';
+                data.forEach(item => {
+                    if (item.contentType.includes('image/')) {
+                        let nameVariable, urlDisplay, dateUploaded, nsfw;
+
+                        if (item.name.includes('display/')) {
+                            nameVariable = 'nameLossy';
+                            urlDisplay = 'urlLossy';
+                            dateUploaded = 'date';
+                            displayData.push({
+                                [nameVariable]: item.name.replace(/(?:display|lossless)\//, '').replace('nsfw/', '').split('.')[0],
+                                [urlDisplay]: item.url,
+                                [dateUploaded]: item.uploadTime,
+                                nsfw: item.url.includes('nsfw') ? true : null
+                            });
+                        } else if (item.name.includes('lossless/')) {
+                            nameVariable = 'nameLossless';
+                            losslessData.push({
+                                [nameVariable]: item.name.replace(/(?:display|lossless)\//, '').replace('nsfw/', '').split('.')[0],
+                                urlLossless: item.url,
+                                date: item.uploadTime
+                            });
+                        }
                     }
-
-                    if (item.url.includes('nsfw')) {
-                        nsfw = true;
-                    }
-
-                    return {
-                        [nameVariable]: item.name.replace(/(?:display|lossless)\//, '').replace('nsfw/', '').split('.')[0],
-                        [urlVariable]: item.url,
-                        [dateUploaded]: item.uploadTime,
-                        [nsfw]: nsfw || null
-                    };
                 });
-                console.log(pulledData);
 
-                pulledData.sort((a, b) => a.dateUploaded - b.dateUploaded);
-                const displayCount = pulledData.slice(0, 10);
+                displayData.sort((a, b) => new Date(b.date) - new Date(a.date));
+                const displayCount = displayData.slice(0, 10);
 
+                console.log("Display Data:", displayCount);
+                console.log("Lossless Data:", losslessData);
 
                 const latestWorkGrid = document.getElementById('latestWorks');
-
                 const imgDataFragment = document.createDocumentFragment();
 
-                
-                for (const item of displayCount) {
-                    if (!item.urlLossless) {
-                        console.log(pulledData.nsfw)
-                        if (pulledData.nsfw === true) {
-                            alert('hi')
-                        }
-                        const img = new Image();
-                        img.setAttribute('style', 'position: relative; max-width:100%; overflow: hidden;');
-                        img.setAttribute('lossless', item.urlLossless);
-                        img.src = item.urlLossy;
-                        img.alt = item.nameLossy; // remove file ext
-                        imgDataFragment.append(img);
-                    }
-                }
+                displayCount.forEach(item => {
+                    const img = new Image();
+                    img.setAttribute('style', 'position: relative; max-width:100%; overflow: hidden;');
+                    img.src = item.urlLossy;
+                    img.alt = item.nameLossy; // remove file ext
+                    img.dataset.flag = item.nsfw ? 'true' : 'false';
+                    img.dataset.lossless = losslessData.find(x => x.nameLossless === item.nameLossy) ?
+                        losslessData.find(x => x.nameLossless === item.nameLossy).urlLossless :
+                        false;
+                    imgDataFragment.append(img);
+                });
+
                 latestWorkGrid.replaceChildren(imgDataFragment);
             } else {
                 alert("Either something went horribly-horribly wrong on Potto's B2 or the bucket is just that empty that nothing gets listed. One is worse than the other. Wondering how on earth did they managed to mess that up? Honestly string theory might just be more comprehensive than their head.");
