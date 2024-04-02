@@ -76,6 +76,8 @@
                     if (matchingLossless) {
                         losslessLinko.textContent = 'lossless: ' + matchingLossless.urlLossless;
                         img.dataset.lossless = matchingLossless.urlLossless;
+                    } else if (item.sketch) {
+                        losslessLinko.textContent = 'Sketch: ' + item.urlLossy;
                     } else {
                         losslessLinko.textContent = 'No lossless version available';
                         img.dataset.lossless = false;
